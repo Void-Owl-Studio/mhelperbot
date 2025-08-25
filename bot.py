@@ -1,8 +1,9 @@
-import logging
-import uuid
-import re
+import asyncio
 import json
+import logging
 import os
+import re
+import uuid
 from aiogram import Bot, Dispatcher, Router, types, F
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, StateFilter, Command
@@ -319,6 +320,7 @@ async def cmd_start(message: types.Message, state: FSMContext):
     )
     await state.set_state(Form.get_bike_id)
 
+
 @router.message(Command("myid"))
 async def cmd_myid(message: types.Message):
     """
@@ -328,6 +330,7 @@ async def cmd_myid(message: types.Message):
     user_id = message.from_user.id
     # Используем ParseMode.MARKDOWN_V2 и обратные кавычки для красивого отображения ID
     await message.answer(f"Твой Telegram ID: `{user_id}`", parse_mode=ParseMode.MARKDOWN_V2)
+
 
 @router.message(Form.get_bike_id, F.text)
 async def process_bike_id(message: types.Message, state: FSMContext):
@@ -359,6 +362,7 @@ async def process_bike_id(message: types.Message, state: FSMContext):
         )
         await state.set_state(Form.get_bike_id)
 
+
 @router.callback_query(Form.get_repair_type, F.data.startswith("type_"))
 async def process_repair_type(callback_query: types.CallbackQuery, state: FSMContext):
     repair_type = callback_query.data.split("_")[1]
@@ -369,6 +373,7 @@ async def process_repair_type(callback_query: types.CallbackQuery, state: FSMCon
     )
     await callback_query.answer()
     await state.set_state(Form.get_location) # Переход к новому состоянию для выбора локации
+
 
 @router.callback_query(Form.get_location, F.data.startswith("loc_"))
 async def process_location_selection(callback_query: types.CallbackQuery, state: FSMContext):
@@ -385,6 +390,7 @@ async def process_location_selection(callback_query: types.CallbackQuery, state:
     )
     await callback_query.answer()
     await state.set_state(Form.select_category)
+
 
 @router.callback_query(Form.select_category, F.data.startswith("category_"))
 async def process_category_selection(callback_query: types.CallbackQuery, state: FSMContext):
@@ -406,6 +412,7 @@ async def process_category_selection(callback_query: types.CallbackQuery, state:
     )
     await callback_query.answer()
     await state.set_state(Form.select_works)
+
 
 @router.callback_query(Form.select_works, F.data.startswith("work_"))
 async def process_works_selection(callback_query: types.CallbackQuery, state: FSMContext):
@@ -429,6 +436,7 @@ async def process_works_selection(callback_query: types.CallbackQuery, state: FS
     await callback_query.message.edit_reply_markup(reply_markup=get_category_works_keyboard(current_category, selected_works))
     await callback_query.answer()
 
+
 @router.callback_query(Form.select_works, F.data == "back_to_categories")
 async def back_to_categories(callback_query: types.CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
@@ -441,6 +449,7 @@ async def back_to_categories(callback_query: types.CallbackQuery, state: FSMCont
     await callback_query.answer()
     await state.set_state(Form.select_category)
 
+
 @router.callback_query(Form.select_works, F.data == "add_custom")
 async def add_custom_work_prompt(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.message.edit_text(
@@ -451,6 +460,7 @@ async def add_custom_work_prompt(callback_query: types.CallbackQuery, state: FSM
     )
     await callback_query.answer()
     await state.set_state(Form.get_custom_work)
+
 
 @router.message(Form.get_custom_work, F.text)
 async def process_custom_work(message: types.Message, state: FSMContext):
@@ -465,6 +475,7 @@ async def process_custom_work(message: types.Message, state: FSMContext):
     )
     await state.set_state(Form.select_category)
 
+
 @router.callback_query(Form.get_custom_work, F.data == "cancel_custom_add")
 async def cancel_custom_add(callback_query: types.CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
@@ -477,6 +488,7 @@ async def cancel_custom_add(callback_query: types.CallbackQuery, state: FSMConte
     )
     await callback_query.answer()
     await state.set_state(Form.select_works)
+
 
 @router.callback_query(F.data == "confirm", StateFilter(Form.select_works, Form.select_category))
 async def confirm_works(callback_query: types.CallbackQuery, state: FSMContext):
@@ -534,9 +546,9 @@ def remove_emojis_and_strip(text: str) -> str:
         "\U00002B50"             # White medium star
         "\U0001F1E6-\U0001F1FF"  # Regional Indicator Symbols
         "]+",
-        flags=re.UNICODE
+        flags=re.UNICODE,
     )
-    return emoji_pattern.sub(r'', text).strip()
+    return emoji_pattern.sub("", text).strip()
 
 
 @router.callback_query(Form.confirm, F.data == "final_confirm")
@@ -695,7 +707,7 @@ async def cancel_form(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.message.edit_text("Действие отменено.")
     await callback_query.answer()
 
-# --- Новые обработчики для админ-панели ---
+# --- Обработчики для админ-панели ---
 @router.message(Command("admin"))
 async def cmd_admin(message: types.Message, state: FSMContext):
     """
@@ -708,6 +720,7 @@ async def cmd_admin(message: types.Message, state: FSMContext):
     await state.set_state(AdminForm.menu)
     await message.answer("Добро пожаловать в админ-панель!", reply_markup=get_admin_menu_keyboard())
 
+
 @router.callback_query(AdminForm.menu, F.data == "admin_add_mechanic")
 async def admin_add_mechanic_prompt(callback_query: types.CallbackQuery, state: FSMContext):
     """Запрашивает Telegram ID нового механика."""
@@ -716,6 +729,7 @@ async def admin_add_mechanic_prompt(callback_query: types.CallbackQuery, state: 
     )
     await state.set_state(AdminForm.add_user)
     await callback_query.answer()
+
 
 @router.message(AdminForm.add_user, F.text)
 async def admin_add_mechanic_process(message: types.Message, state: FSMContext):
@@ -736,6 +750,7 @@ async def admin_add_mechanic_process(message: types.Message, state: FSMContext):
     await state.set_state(AdminForm.menu)
     await message.answer("Админ-панель:", reply_markup=get_admin_menu_keyboard())
 
+
 @router.callback_query(AdminForm.menu, F.data == "admin_add_admin")
 async def admin_add_admin_prompt(callback_query: types.CallbackQuery, state: FSMContext):
     """Запрашивает Telegram ID нового администратора."""
@@ -744,6 +759,7 @@ async def admin_add_admin_prompt(callback_query: types.CallbackQuery, state: FSM
     )
     await state.set_state(AdminForm.add_admin)
     await callback_query.answer()
+
 
 @router.message(AdminForm.add_admin, F.text)
 async def admin_add_admin_process(message: types.Message, state: FSMContext):
@@ -763,6 +779,7 @@ async def admin_add_admin_process(message: types.Message, state: FSMContext):
     
     await state.set_state(AdminForm.menu)
     await message.answer("Админ-панель:", reply_markup=get_admin_menu_keyboard())
+
 
 @router.callback_query(AdminForm.menu, F.data == "admin_list_mechanics")
 async def admin_list_mechanics(callback_query: types.CallbackQuery, state: FSMContext):
@@ -784,6 +801,7 @@ async def admin_list_mechanics(callback_query: types.CallbackQuery, state: FSMCo
     )
     await callback_query.answer()
 
+
 @router.callback_query(AdminForm.menu, F.data == "admin_list_admins")
 async def admin_list_admins(callback_query: types.CallbackQuery, state: FSMContext):
     """Отображает список администраторов."""
@@ -804,6 +822,7 @@ async def admin_list_admins(callback_query: types.CallbackQuery, state: FSMConte
     )
     await callback_query.answer()
 
+
 @router.callback_query(AdminForm.menu, F.data == "admin_remove_mechanic")
 async def admin_remove_mechanic_prompt(callback_query: types.CallbackQuery, state: FSMContext):
     """Запрашивает ID механика для удаления."""
@@ -812,6 +831,7 @@ async def admin_remove_mechanic_prompt(callback_query: types.CallbackQuery, stat
     )
     await state.set_state(AdminForm.remove_user)
     await callback_query.answer()
+
 
 @router.message(AdminForm.remove_user, F.text)
 async def admin_remove_mechanic_process(message: types.Message, state: FSMContext):
@@ -832,6 +852,7 @@ async def admin_remove_mechanic_process(message: types.Message, state: FSMContex
     await state.set_state(AdminForm.menu)
     await message.answer("Админ-панель:", reply_markup=get_admin_menu_keyboard())
 
+
 @router.callback_query(AdminForm.menu, F.data == "admin_remove_admin")
 async def admin_remove_admin_prompt(callback_query: types.CallbackQuery, state: FSMContext):
     """Запрашивает ID администратора для удаления."""
@@ -840,6 +861,7 @@ async def admin_remove_admin_prompt(callback_query: types.CallbackQuery, state: 
     )
     await state.set_state(AdminForm.remove_admin)
     await callback_query.answer()
+
 
 @router.message(AdminForm.remove_admin, F.text)
 async def admin_remove_admin_process(message: types.Message, state: FSMContext):
@@ -866,6 +888,7 @@ async def admin_remove_admin_process(message: types.Message, state: FSMContext):
     await state.set_state(AdminForm.menu)
     await message.answer("Админ-панель:", reply_markup=get_admin_menu_keyboard())
 
+
 @router.callback_query(AdminForm.menu, F.data == "admin_set_dispatcher_id")
 async def admin_set_dispatcher_id_prompt(callback_query: types.CallbackQuery, state: FSMContext):
     """Запрашивает ID чата диспетчера."""
@@ -874,6 +897,7 @@ async def admin_set_dispatcher_id_prompt(callback_query: types.CallbackQuery, st
     )
     await state.set_state(AdminForm.set_dispatcher_id)
     await callback_query.answer()
+
 
 @router.message(AdminForm.set_dispatcher_id, F.text)
 async def admin_set_dispatcher_id_process(message: types.Message, state: FSMContext):
@@ -892,12 +916,14 @@ async def admin_set_dispatcher_id_process(message: types.Message, state: FSMCont
     await state.set_state(AdminForm.menu)
     await message.answer("Админ-панель:", reply_markup=get_admin_menu_keyboard())
 
+
 @router.callback_query(F.data == "admin_back_to_menu")
 async def admin_back_to_menu(callback_query: types.CallbackQuery, state: FSMContext):
     """Возвращает в главное меню админ-панели."""
     await state.set_state(AdminForm.menu)
     await callback_query.message.edit_text("Админ-панель:", reply_markup=get_admin_menu_keyboard())
     await callback_query.answer()
+
 
 @router.callback_query(AdminForm.menu, F.data == "admin_exit")
 async def admin_exit(callback_query: types.CallbackQuery, state: FSMContext):
@@ -963,5 +989,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())
